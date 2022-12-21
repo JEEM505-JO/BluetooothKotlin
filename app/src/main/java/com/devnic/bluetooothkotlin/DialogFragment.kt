@@ -1,6 +1,5 @@
 package com.devnic.bluetooothkotlin
 
-import android.annotation.SuppressLint
 import android.bluetooth.BluetoothDevice
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
@@ -10,12 +9,10 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.DialogFragment
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.devnic.bluetooothkotlin.databinding.FragmentDialogBinding
 
-class DialogoFragment(private var list: MutableLiveData<List<BluetoothDevice>>) : DialogFragment() {
+class DialogoFragment(private var list: List<BluetoothDevice>) : DialogFragment() {
     private lateinit var binding: FragmentDialogBinding
     private lateinit var bluetooth: Bluetooth
     private lateinit var adapterRv: AdapterRv
@@ -41,10 +38,8 @@ class DialogoFragment(private var list: MutableLiveData<List<BluetoothDevice>>) 
 
     override fun onResume() {
         super.onResume()
-        list.observeForever {
-            it?.let {
-                adapterRv.submitList(it)
-            }
+        list.let {
+            adapterRv.submitList(it)
         }
     }
 

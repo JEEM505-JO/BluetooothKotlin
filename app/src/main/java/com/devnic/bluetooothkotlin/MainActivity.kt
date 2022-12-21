@@ -2,20 +2,18 @@ package com.devnic.bluetooothkotlin
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.content.Context
-import android.content.pm.PackageManager
-import android.location.Location
-import android.location.LocationManager
+import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
-import androidx.lifecycle.MutableLiveData
 import com.devnic.bluetooothkotlin.databinding.ActivityMainBinding
 import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationServices
+import java.text.SimpleDateFormat
+import java.util.*
 
+@RequiresApi(Build.VERSION_CODES.O)
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var bluetooth: Bluetooth
@@ -29,9 +27,9 @@ class MainActivity : AppCompatActivity() {
             ActivityResultContracts.RequestPermission()
         ) { permisin ->
             bluetooth.searchdevice(permisin)
-            getlocation()
         }
 
+    @RequiresApi(Build.VERSION_CODES.Q)
     @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,64 +50,61 @@ class MainActivity : AppCompatActivity() {
                 if (it == null) {
                     binding.tvubicaion.text = "UBICACION NULA"
                 } else {
-                    binding.tvubicaion.text = "LOCALIZACION ${it.longitude}  ${it.latitude}"
+                    binding.tvubicaion.text = "LOCALIZACION ${it.latitude}  ${it.longitude}"
                 }
+            }
+        }
+
+        binding.getdate.setOnClickListener {
+            binding.movil.text = getDateMobile()
+            dayBetweenDates()
+        }
+    }
+
+
+    fun getDateMobile(): String {
+        val date = Calendar.getInstance().time
+//        val formatter = SimpleDateFormat.getDateTimeInstance() //or use getDateInstance()
+        val formatter = SimpleDateFormat("yyyy/MM/dd")
+        val formatedDate = formatter.format(date)
+        return formatedDate
+    }
+
+
+    @SuppressLint("SimpleDateFormat")
+    fun dayBetweenDates() {
+        val fechaactual = Date(System.currentTimeMillis())
+        val fechateorica = "2023/12/24"
+
+        val date = SimpleDateFormat("yyyy/MM/dd")
+        val fechaInicioDate = date.parse(fechateorica)
+        if (fechaInicioDate != null) {
+            if (fechaInicioDate.after(fechaactual)) {
+                println("Fecha inicio mayor")
+                //CONFIGURAR FECHA DE LECTURA TEORICA
+            } else {
+                println("Fecha actual mayor")
             }
         }
 
     }
 
-    fun getlocation(): MutableLiveData<Location> {
-        val location: MutableLiveData<Location> = MutableLiveData()
-        fusedLocation = LocationServices.getFusedLocationProviderClient(this)
-        if (isLocationEnabled()) {
-            if (ActivityCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.ACCESS_FINE_LOCATION
-                ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.ACCESS_COARSE_LOCATION
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                serch()
-            }
-            fusedLocation.lastLocation.addOnSuccessListener(this) { task ->
-                location.value = task
-                println("${task.latitude}")
-                if (location == null) {
-                    println("LOCATION IS NULL")
-                } else {
-                    println("LOCALIZACION ${location.value?.longitude}  ${location.value?.latitude}")
-                    location.postValue(task)
-                }
-            }
-        } else {
-            Toast.makeText(this, "ACTIVE LA UBICACION POR FAVOR", Toast.LENGTH_SHORT).show()
-        }
-        return location
-    }
 
-
+    @RequiresApi(Build.VERSION_CODES.Q)
     fun serch() {
         with(getResult) {
             launch(Manifest.permission.ACCESS_FINE_LOCATION)
             launch(Manifest.permission.ACCESS_COARSE_LOCATION)
+            launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
         }
     }
 
 
     override fun onResume() {
         super.onResume()
-        dialog = DialogoFragment(bluetooth.listdevice)
-    }
-
-    @SuppressLint("ServiceCast")
-    fun isLocationEnabled(): Boolean {
-        //si los servicios de gps estan habilitados, retorna disponible
-        val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || locationManager.isProviderEnabled(
-            LocationManager.NETWORK_PROVIDER
-        )
+        bluetooth.listdevice.observeForever {
+            dialog = DialogoFragment(it)
+        }
     }
 
 

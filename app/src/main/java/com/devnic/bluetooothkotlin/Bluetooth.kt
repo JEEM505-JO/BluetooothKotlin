@@ -22,7 +22,10 @@ class Bluetooth(private val context: Context) {
     val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
     val bluetoothAdapter = bluetoothManager.adapter
     val listdevice: MutableLiveData<List<BluetoothDevice>> = MutableLiveData()
-    val list = mutableListOf<BluetoothDevice>()
+    val listparent = mutableListOf<BluetoothDevice>()
+    val listsearch = mutableListOf<BluetoothDevice>()
+    val principalList = mutableListOf<BluetoothDevice>()
+
 
     fun BluetoothState(): MutableLiveData<Boolean> {
         val status: MutableLiveData<Boolean> = MutableLiveData()
@@ -47,7 +50,10 @@ class Bluetooth(private val context: Context) {
             val pairedDevices: Set<BluetoothDevice>? = bluetoothAdapter?.bondedDevices
 
             if (pairedDevices != null) {
-                list.addAll(pairedDevices)
+                listparent.addAll(pairedDevices)
+            }
+            if (principalList.size <= 0) {
+                principalList.addAll(listparent)
             }
             val filter = IntentFilter(BluetoothDevice.ACTION_FOUND)
             val receiver = object : BroadcastReceiver() {
@@ -59,7 +65,11 @@ class Bluetooth(private val context: Context) {
                                     it.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
                                 device?.let { it1 ->
                                     println("NAME: ${it1.name}, ADDRESS: ${it1.address}")
-                                    list.add(it1)
+                                    compareDevices(listparent, it1.address).let { boolean ->
+                                        if (!boolean) {
+                                            principalList.add(it1)
+                                        }
+                                    }
                                 }
                             }
                             else -> {
@@ -69,7 +79,22 @@ class Bluetooth(private val context: Context) {
                     }
                 }
             }
-            listdevice.postValue(list)
+
+
+            if (listsearch.size > 0) {
+                for (itemP in principalList.indices) {
+                    for (searchItem in listsearch.indices) {
+                        if (listsearch[searchItem].address != principalList[itemP].address) {
+                            principalList.add(listsearch[searchItem])
+                        }
+                    }
+                }
+            }
+
+
+
+
+            listdevice.postValue(principalList)
             context.registerReceiver(receiver, filter)
             bluetoothAdapter.startDiscovery()
             return
@@ -78,13 +103,26 @@ class Bluetooth(private val context: Context) {
         }
     }
 
+    fun compareDevices(list: List<BluetoothDevice>, device: String): Boolean {
+        var tru: Int = 0
+        for (item in list.indices) {
+            if (list[item].address == device) {
+                tru++
+            }
+        }
+        if (tru > 0) {
+            return true
+        }
+        return false
+    }
+
     fun getdevice(): MutableLiveData<List<BluetoothDevice>> {
         val devices: MutableLiveData<List<BluetoothDevice>> = MutableLiveData()
         val pairedDevices: Set<BluetoothDevice>? = bluetoothAdapter?.bondedDevices
         pairedDevices?.forEach {
             devices.postValue(listOf(it))
         }
-        devices.postValue(list)
+//        devices.postValue(list)
         return devices
     }
 }
