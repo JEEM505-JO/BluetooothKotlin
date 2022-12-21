@@ -4,6 +4,7 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
@@ -12,6 +13,7 @@ import com.devnic.bluetooothkotlin.databinding.ActivityMainBinding
 import com.google.android.gms.location.FusedLocationProviderClient
 import java.text.SimpleDateFormat
 import java.util.*
+
 
 @RequiresApi(Build.VERSION_CODES.O)
 class MainActivity : AppCompatActivity() {
@@ -24,9 +26,12 @@ class MainActivity : AppCompatActivity() {
 
     private val getResult =
         registerForActivityResult(
-            ActivityResultContracts.RequestPermission()
-        ) { permisin ->
-            bluetooth.searchdevice(permisin)
+            ActivityResultContracts.RequestMultiplePermissions()
+        ) { permissions ->
+            permissions.entries.forEach {
+                Log.d("test006", "${it.key} = ${it.value}")
+                bluetooth.searchdevice(it.value)
+            }
         }
 
     @RequiresApi(Build.VERSION_CODES.Q)
@@ -40,7 +45,6 @@ class MainActivity : AppCompatActivity() {
         bluetooth = Bluetooth(this)
         location = RlLocation(this)
 
-        serch()
         binding.mostrar.setOnClickListener {
             dialog.show(supportFragmentManager, "DIALOG")
         }
@@ -58,6 +62,21 @@ class MainActivity : AppCompatActivity() {
         binding.getdate.setOnClickListener {
             binding.movil.text = getDateMobile()
             dayBetweenDates()
+        }
+
+        with(getResult) {
+            launch(
+                arrayOf(
+                    Manifest.permission.BLUETOOTH_CONNECT,
+                    Manifest.permission.BLUETOOTH_SCAN
+                )
+            )
+            launch(
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                )
+            )
         }
     }
 
@@ -88,17 +107,6 @@ class MainActivity : AppCompatActivity() {
         }
 
     }
-
-
-    @RequiresApi(Build.VERSION_CODES.Q)
-    fun serch() {
-        with(getResult) {
-            launch(Manifest.permission.ACCESS_FINE_LOCATION)
-            launch(Manifest.permission.ACCESS_COARSE_LOCATION)
-            launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
-        }
-    }
-
 
     override fun onResume() {
         super.onResume()
